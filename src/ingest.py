@@ -12,6 +12,8 @@ def extract_text_from_pdf(pdf_path: str) -> str:
 
 
 def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:
+    text = " ".join(text.split())
+    words = text.split()
     """
     Split text into overlapping chunks.
     chunk_size: number of words per chunk
@@ -61,4 +63,9 @@ def load_documents(data_dir: str) -> list[dict]:
 if __name__ == "__main__":
     chunks = load_documents("data")
     print(f"\nTotal chunks: {len(chunks)}")
-    print(f"\nSample chunk:\n{chunks[0]['text'][:300]}")
+    if chunks:
+        print(f"\nSample chunk:\n{chunks[0]['text'][:300]}")
+    else:
+        print("No text extracted — PDF may be image-based (scanned)")
+
+    
