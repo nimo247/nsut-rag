@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from embed import load_index, build_index
 from retrieve import ask
+from embed import load_index, build_index, load_bm25_index
 
 load_dotenv()
 
@@ -24,8 +25,10 @@ st.caption("Ask questions from your uploaded course notes")
 @st.cache_resource
 def load_resources():
     index, chunks = load_index()
+    bm25 = load_bm25_index()
     model = SentenceTransformer("all-MiniLM-L6-v2")
-    return index, chunks, model
+    return index, chunks, bm25, model
+
 
 # ── Sidebar: upload + reindex ─────────────────────────────
 with st.sidebar:
@@ -89,8 +92,8 @@ if query:
     with st.chat_message("assistant"):
         with st.spinner("Searching notes..."):
             try:
-                index, chunks, model = load_resources()
-                result = ask(query, index, chunks, model, top_k=top_k)
+                index, chunks,bm25 , model = load_resources()
+                result = ask(query, index, chunks, model, bm25=bm25, top_k=top_k)
                 st.markdown(result["answer"])
 
                 with st.expander("📎 Sources"):
