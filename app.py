@@ -5,9 +5,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
-from embed import load_index, build_index
-from retrieve import ask
 from embed import load_index, build_index, load_bm25_index
+from retrieve import ask
 
 load_dotenv()
 
@@ -35,8 +34,8 @@ with st.sidebar:
     st.header("📁 Documents")
 
     uploaded = st.file_uploader(
-        "Upload PDF notes", 
-        type="pdf", 
+        "Upload PDF notes",
+        type="pdf",
         accept_multiple_files=True
     )
 
@@ -60,45 +59,59 @@ with st.sidebar:
         pdfs = [f for f in os.listdir("data") if f.endswith(".pdf")]
         for pdf in pdfs:
             st.markdown(f"- {pdf}")
-    
+
     top_k = st.slider("Chunks to retrieve", min_value=3, max_value=10, value=5)
 
-# ── Main chat interface ───────────────────────────────────
-if "messages" in st.session_state and len(st.session_state.messages) == 0:
-    st.session_state.messages = []
+    # Clear chat button
+    if st.button("🗑️ Clear Chat"):
+        st.session_state.messages = []
+        st.rerun()
 
+# ── Session state init ────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history
+# ── Display chat history ──────────────────────────────────
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         if msg["role"] == "assistant" and "sources" in msg:
             with st.expander("📎 Sources"):
                 for s in msg["sources"]:
-                    st.markdown(f"- `{s['filename']}` — chunk {s['chunk_index']} (score: {s['score']:.2f})")
+                    st.markdown(
+                        f"- `{s['filename']}` — chunk {s['chunk_index']} "
+                        f"(score: {s['score']:.2f})"
+                    )
 
-# Query input
+# ── Query input ───────────────────────────────────────────
 query = st.chat_input("Ask something from your notes...")
 
 if query:
-    # Show user message
     st.session_state.messages.append({"role": "user", "content": query})
     with st.chat_message("user"):
         st.markdown(query)
 
-    # Generate answer
     with st.chat_message("assistant"):
         with st.spinner("Searching notes..."):
             try:
-                index, chunks,bm25 , model = load_resources()
-                result = ask(query, index, chunks, model, bm25=bm25, top_k=top_k)
+                index, chunks, bm25, model = load_resources()
+                result = ask(
+                    query,
+                    index,
+                    chunks,
+                    model,
+                    bm25=bm25,
+                    top_k=top_k,
+                    chat_history=st.session_state.messages  # conversation memory
+                )
                 st.markdown(result["answer"])
 
                 with st.expander("📎 Sources"):
                     for s in result["sources"]:
-                        st.markdown(f"- `{s['filename']}` — chunk {s['chunk_index']} (score: {s['score']:.2f})")
+                        st.markdown(
+                            f"- `{s['filename']}` — chunk {s['chunk_index']} "
+                            f"(score: {s['score']:.2f})"
+                        )
 
                 st.session_state.messages.append({
                     "role": "assistant",
