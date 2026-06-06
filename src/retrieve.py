@@ -19,9 +19,13 @@ def build_prompt(query: str, chunks: list[dict]) -> str:
     for i, chunk in enumerate(chunks):
         context += f"[Source {i+1} - {chunk['filename']}]\n{chunk['text']}\n\n"
 
-    return f"""You are a helpful study assistant. Answer the question using ONLY the context provided below.
-If the answer is not in the context, say "I couldn't find this in the provided notes."
-Always mention which source you used.
+    return f"""You are a helpful study assistant for engineering students.
+Using the context below, give a clear, well-explained answer to the question.
+- Explain concepts in your own words, don't just copy text from the source
+- Use the equations and facts from the context to support your explanation
+- If the context contains relevant equations, include and explain them
+- If the context truly has no relevant information, say so
+- Always mention which source(s) you used
 
 CONTEXT:
 {context}
