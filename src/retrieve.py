@@ -32,9 +32,12 @@ def build_prompt(query: str, chunks: list, chat_history: list = []) -> str:
 Using the context below, give a clear, well-explained answer to the question.
 - Explain concepts in your own words, don't just copy text from the source
 - Use the equations and facts from the context to support your explanation
+- Format ALL mathematical equations using LaTeX syntax wrapped in $$ for display math
+  Example: $$\\nabla \\times E = -\\frac{{\\partial B}}{{\\partial t}}$$
 - If the context contains relevant equations, include and explain them
 - If the context truly has no relevant information, say so
 - Always mention which source(s) you used
+...
 
 {history_str}CONTEXT:
 {context}
