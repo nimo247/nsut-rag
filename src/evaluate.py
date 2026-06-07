@@ -8,7 +8,7 @@ from embed import load_index, load_bm25_index
 from retrieve import ask
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics import faithfulness, answer_relevancy, context_precision
+from ragas.metrics import faithfulness, answer_relevancy, context_utilization
 from ragas.llms import LangchainLLMWrapper
 from langchain_groq import ChatGroq
 
@@ -64,7 +64,7 @@ def run_evaluation():
     print("Running RAGAS evaluation...")
     results = evaluate(
         dataset,
-        metrics=[faithfulness, answer_relevancy, context_precision],
+        metrics=[faithfulness, answer_relevancy, context_utilization],
         llm=groq_llm,
     )
 
@@ -76,7 +76,7 @@ def run_evaluation():
     print("\nMean scores:")
     print(f"  Faithfulness:      {df['faithfulness'].mean():.3f}")
     print(f"  Answer Relevancy:  {df['answer_relevancy'].mean():.3f}")
-    print(f"  Context Precision: {df['context_precision'].mean():.3f}")
+    print(f"  Context Utilization: {df['context_utilization'].mean():.3f}")
 
     # Save results
     df.to_csv("evaluation_results.csv", index=False)
