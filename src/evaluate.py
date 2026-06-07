@@ -10,12 +10,12 @@ from datasets import Dataset
 from ragas import evaluate
 from ragas.metrics import faithfulness, answer_relevancy, context_utilization
 from ragas.llms import LangchainLLMWrapper
+from ragas.embeddings import LangchainEmbeddingsWrapper
 from langchain_groq import ChatGroq
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 load_dotenv()
 
-# ── Test questions about your PDF ────────────────────────
-# Write 5 questions you know the answers to from your document
 EVAL_QUESTIONS = [
     "What are Maxwell's equations in differential form?",
     "What is Gauss's law for electric fields?",
@@ -30,7 +30,6 @@ def run_evaluation():
     bm25 = load_bm25_index()
     model = SentenceTransformer("all-MiniLM-L6-v2")
 
-    # Collect RAG outputs
     questions = []
     answers = []
     contexts = []
@@ -41,19 +40,18 @@ def run_evaluation():
         result = ask(q, index, chunks, model, bm25=bm25, top_k=5)
         questions.append(q)
         answers.append(result["answer"])
-        contexts.append([s["filename"] + ": " + 
-                        chunks[s["chunk_index"]]["text"] 
-                        for s in result["sources"]])
+        contexts.append([
+            chunks[s["chunk_index"]]["text"]
+            for s in result["sources"]
+        ])
         print(f"A: {result['answer'][:100]}...\n")
 
-    # Build dataset
     dataset = Dataset.from_dict({
         "question": questions,
         "answer": answers,
         "contexts": contexts,
     })
 
-    # Use Groq as evaluation LLM
     groq_llm = LangchainLLMWrapper(
         ChatGroq(
             model="llama-3.1-8b-instant",
@@ -61,24 +59,28 @@ def run_evaluation():
         )
     )
 
-    print("Running RAGAS evaluation...")
+    embeddings = LangchainEmbeddingsWrapper(
+        HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    )
+
+    print("Running RAGAS evaluation... (takes 2-3 mins)")
     results = evaluate(
         dataset,
         metrics=[faithfulness, answer_relevancy, context_utilization],
         llm=groq_llm,
+        embeddings=embeddings,
     )
 
     print("\n" + "="*50)
     print("RAGAS EVALUATION RESULTS")
     print("="*50)
     df = results.to_pandas()
-    print(df[["question", "faithfulness", "answer_relevancy", "context_precision"]].to_string())
+    print(df[["question", "faithfulness", "answer_relevancy", "context_utilization"]].to_string())
     print("\nMean scores:")
-    print(f"  Faithfulness:      {df['faithfulness'].mean():.3f}")
-    print(f"  Answer Relevancy:  {df['answer_relevancy'].mean():.3f}")
+    print(f"  Faithfulness:        {df['faithfulness'].mean():.3f}")
+    print(f"  Answer Relevancy:    {df['answer_relevancy'].mean():.3f}")
     print(f"  Context Utilization: {df['context_utilization'].mean():.3f}")
 
-    # Save results
     df.to_csv("evaluation_results.csv", index=False)
     print("\nSaved to evaluation_results.csv")
 
